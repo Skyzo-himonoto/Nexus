@@ -1,0 +1,257 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  avatar          String?
+  role            Role      @default(USER)
+  emailVerified   Boolean   @default(false)
+  otpCode         String?
+  otpExpires      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  balances        Balance[]
+  transactions    Transaction[]
+  invoices        Invoice[]
+  apiKeys         ApiKey[]
+  webhooks        Webhook[]
+  notifications   Notification[]
+  logs            Log[]
+  withdraws       Withdraw[]
+  settlements     Settlement[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Balance {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id])
+  holdingBalance   Float    @default(0)
+  availableBalance Float    @default(0)
+  withdrawBalance  Float    @default(0)
+  totalWithdrawn   Float    @default(0)
+  totalRevenue     Float    @default(0)
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Transaction {
+  id              String          @id @default(cuid())
+  transactionId   String          @unique
+  userId          String
+  user            User            @relation(fields: [userId], references: [id])
+  amount          Float
+  fee             Float           @default(0)
+  totalAmount     Float
+  status          TransactionStatus @default(PENDING)
+  type            TransactionType
+  paymentMethod   String?
+  provider        String?
+  customerInfo    Json?
+  note            String?
+  expiredAt       DateTime?
+  paidAt          DateTime?
+  releasedAt      DateTime?
+  holdingUntil    DateTime?
+  callbackUrl     String?
+  redirectUrl     String?
+  providerTransactionId String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  invoice         Invoice?
+  settlement      Settlement?
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([transactionId])
+}
+
+model Invoice {
+  id            String      @id @default(cuid())
+  invoiceCode   String      @unique
+  transactionId String      @unique
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  amount        Float
+  status        InvoiceStatus @default(UNPAID)
+  qrCode        String?
+  paymentUrl    String?
+  expiredAt     DateTime
+  createdAt     DateTime    @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@index([invoiceCode])
+}
+
+model ApiKey {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  publicKey     String    @unique
+  secretKey     String    @unique
+  name          String
+  ipWhitelist   String[]
+  isActive      Boolean   @default(true)
+  lastUsed      DateTime?
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([publicKey])
+  @@index([isActive])
+}
+
+model Webhook {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  url        String
+  events     String[]
+  isActive   Boolean  @default(true)
+  secret     String
+  lastSent   DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+model Withdraw {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  amount          Float
+  fee             Float         @default(3000)
+  netAmount       Float
+  bankName        String
+  accountNumber   String
+  accountName     String
+  status          WithdrawStatus @default(PENDING)
+  approvedBy      String?
+  approvedAt      DateTime?
+  rejectedReason  String?
+  completedAt     DateTime?
+  createdAt       DateTime      @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Settlement {
+  id            String        @id @default(cuid())
+  transactionId String        @unique
+  transaction   Transaction   @relation(fields: [transactionId], references: [id])
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  amount        Float
+  status        SettlementStatus @default(HOLDING)
+  releasedAt    DateTime?
+  holdingUntil  DateTime
+  createdAt     DateTime      @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@index([holdingUntil])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([type])
+}
+
+model Log {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  action    String
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime    @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+enum Role {
+  USER
+  ADMIN
+  RESELLER
+}
+
+enum TransactionStatus {
+  PENDING
+  PAID
+  SUCCESS
+  HOLDING
+  RELEASED
+  FAILED
+  EXPIRED
+  REFUNDED
+}
+
+enum TransactionType {
+  PAYMENT
+  WITHDRAW
+  FEE
+  REFUND
+  SETTLEMENT
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  EXPIRED
+  CANCELLED
+}
+
+enum WithdrawStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  REJECTED
+}
+
+enum SettlementStatus {
+  HOLDING
+  RELEASED
+  CANCELLED
+}
+
+enum NotificationType {
+  PAYMENT_SUCCESS
+  WITHDRAW_SUCCESS
+  WITHDRAW_REJECTED
+  BALANCE_RELEASED
+  TRANSACTION_HOLDING
+}
