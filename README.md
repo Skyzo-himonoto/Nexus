@@ -21,7 +21,7 @@
 ## 📱 Demo & Preview
 
 <p align="center">
-  <img src="https://via.placeholder.com/800x450?text=Nexus+Pedia+Dashboard" alt="Dashboard Preview" width="80%">
+  <img src="https://github.com/Skyzo-himonoto/Nexus/800x450?text=Nexus+Pedia+Dashboard" alt="Dashboard Preview" width="80%">
 </p>
 
 ## ✨ Features
