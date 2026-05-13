@@ -4,6 +4,6 @@
   "framework": "nextjs",
   "regions": ["sin1"],
   "env": {
-    "NEXT_PUBLIC_APP_URL": "https://nexus-pedia.vercel.app"
+    "NEXT_PUBLIC_APP_URL": "https://github.com/Skyzo-himonoto/Nexus"
   }
 }
